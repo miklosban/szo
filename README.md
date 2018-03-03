@@ -27,7 +27,9 @@ From English-Hungarian FreeDict Dictionary ver. 0.1 [fd-eng-hun]:
 
   all the world over
   1. az egész világon
+  
   ....
+  
   
 
 $ szo worf
