@@ -1,0 +1,101 @@
+#!/usr/bin/perl
+
+my $pager = $ENV{PAGER} || 'less';
+# default dictd method
+$m = 'word';
+# default dictionary, see 'dict -D' for the available databases
+$dictionary = 'fd-eng-hun';
+
+$hunspell = '/usr/bin/hunspell'; # if no match, check the spelling
+$dict = 'en_US'; #hunspell dict
+unless (-e $hunspell) {
+	$hunspell = '';
+}
+
+#use Term::ReadLine;
+#my $term = Term::ReadLine->new('szo');
+#my $prompt = "? ";
+#use Term::ReadKey;
+
+if ($ARGV[0] and $ARGV[0] eq 'nousage') {
+    if ($ARGV[1]) {
+        $s = $ARGV[1];
+        print "? $s";
+    }
+    else {
+        #ReadMode(2);
+        #$char = ReadKey(0);
+        #ReadMode(0);
+        #if ($char =~ '/^\^/') {
+        #    print "control mode: $char";
+        #}
+
+        print "\n? ";
+        chop($s = <STDIN>);
+    }
+}
+elsif ($ARGV[1]) {
+    if ( $ARGV[0] eq 'e' ) { $m = 'exact'; shift(@ARGV); } 
+    elsif ( $ARGV[0] eq 'r' ) { $m = 'regexp'; shift(@ARGV); }
+    elsif ( $ARGV[0] eq 'w' ) { $m = 'word'; shift(@ARGV); }
+    elsif ( $ARGV[0] eq 's' ) { $m = 'substring'; shift(@ARGV); }
+    elsif ( $ARGV[0] eq 're' ) { $m = 're'; shift(@ARGV); }
+    elsif ( $ARGV[0] eq 'so' ) { $m = 'soundex'; shift(@ARGV); }
+    elsif ( $ARGV[0] eq 'pr' ) { $m = 'prefix'; shift(@ARGV); }
+    $s = '';
+    for($i=0;$i<@ARGV;$i++) {
+        $s.=$ARGV[$i].' ';
+    }
+} elsif ($ARGV[0]) {
+    $s = $ARGV[0];
+} else {
+    print "Usage: szotar [method] search_for_word\nMethods:
+    e  (exact)
+    r  (regexp)
+    w  (word) **default
+    s  (substring)
+    re (regexp)
+    so (soundex)
+    pr (prefix)\n\n";
+
+    print "? ";
+    chop($s = <STDIN>);
+}
+
+if ($s eq '') {
+    print "Bye!\n";
+    exit;
+}
+
+if ($s !~ /^\w+/) {
+    #print "Illegal character!\n";
+    $s = `tail -n 1 save.szo`;
+    chop($s);
+    system( "$0 nousage $s" );
+    exit;
+}
+#print "Waiting for dictd...";
+
+#open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
+open(my $less, '|-', $pager) || die "Cannot pipe to $pager: $!";
+$res = `dict -d $dictionary -s $m $s`;
+#$res = `dict -s $m $s`;
+print $less $res;
+close($less);
+
+if ($res !~ /^$/) {
+    open (SAVE,">>save.szo");
+    print SAVE $s."\n";
+    close SAVE;
+} elsif ($hunspell !~ /^$/) {
+    print "\n";
+    $res=`echo $s |$hunspell -d $dict`;
+    if ($res =~ /\+ (\w+)$/m) {
+        system( "$0 $1" );
+    } else {
+        print $res;
+    }
+}
+
+system( "$0 nousage" );
+exit;
